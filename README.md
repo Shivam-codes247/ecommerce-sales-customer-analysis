@@ -4,7 +4,25 @@ End-to-end SQL analysis of **96,211 delivered orders (R$13.18M revenue)** from t
 
 **Stack:** PostgreSQL · SQL (CTEs, window functions, views) · Excel/CSV exports · Git
 
-![Dashboard](docs/dashboard.png)
+## Dashboard
+
+The dashboard summarizes monthly revenue and orders, customer ratings by delivery
+lateness, revenue by state, and revenue by product category.
+
+![E-commerce sales and customer analysis dashboard](dashboard/dashboard.png)
+
+The chart above is a static preview. The CSV exports below are available for
+exploration or for building an interactive dashboard in Excel:
+
+| Export | Contents |
+|---|---|
+| [Monthly sales](outputs/monthly_sales.csv) | Monthly revenue, order count, average order value, and month-over-month change |
+| [State sales](outputs/state_sales.csv) | Revenue, orders, delivery time, late rate, and review score by state |
+| [Category Pareto](outputs/category_pareto.csv) | Category units, revenue, and cumulative revenue share |
+| [Category scorecard](outputs/category_scorecard.csv) | Category revenue, review score, late rate, and delivery time |
+| [Lateness vs. reviews](outputs/lateness_vs_reviews.csv) | Review outcomes grouped by days late |
+| [Monthly delivery](outputs/monthly_delivery.csv) | Monthly delivery time and late-delivery rate |
+| [RFM segments](outputs/rfm_segments.csv) | Customer counts, revenue, and recency by RFM segment |
 
 ## Key findings
 
