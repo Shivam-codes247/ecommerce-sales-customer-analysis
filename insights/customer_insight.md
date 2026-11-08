@@ -1,8 +1,4 @@
-## Customer Insights (Jan 2017 – Aug 2018, unique customers)
-
-- Customer analysis uses `customer_unique_id`; RFM recency is measured from the last order in the data (not today's date).
-- Frequency scoring is rule-based (1, 2, 3+ orders) because 97% of customers have a single order.
-- 827 repeat customers placed same-day second orders; the true repeat rate is ~2.1%.
+# Customer Insights (Jan 2017 – Aug 2018, unique customers)
 
 1. 97.0% of 93,104 customers bought once; 3.0% repeated. 29.7% of repeaters ordered
    again on the same day, so the true repeat rate is about 2.1%.
@@ -27,3 +23,8 @@
 *Limitations:* cohorts near the end of the window had less time to return (censoring);
 2016 customers appear as "new" in 2017; cohort percentages rest on very small counts;
 one person using several accounts would be counted as several customers.
+
+**Method notes**
+- Customer analysis uses `customer_unique_id`; RFM recency is measured from the last order in the data (not today's date).
+- Frequency scoring is rule-based (1, 2, 3+ orders) because 97% of customers have a single order.
+- 827 repeat customers placed same-day second orders; the true repeat rate is ~2.1%.

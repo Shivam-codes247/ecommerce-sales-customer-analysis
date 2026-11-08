@@ -1,12 +1,12 @@
-# Raw dataset
+# Raw dataset (download from Kaggle, see README)
+data/
 DATASET/
 
-# Python
+# Python / Jupyter
 __pycache__/
 *.pyc
-
-# Jupyter
 .ipynb_checkpoints/
 
-# Environment files
+# Environment / OS
 .env
+.DS_Store

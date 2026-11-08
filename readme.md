@@ -1,244 +1,128 @@
-# E-Commerce Sales & Customer Analysis
+# E-Commerce Sales & Customer Analysis (SQL)
 
-## 📌 Project Overview
+End-to-end SQL analysis of **96,211 delivered orders (R$13.18M revenue)** from the Olist Brazilian marketplace, Jan 2017 to Aug 2018. The project covers data-quality auditing, a reusable cleaned view layer, and analysis of sales, products, customers and operations. Each section ends with business insights and recommendations.
 
-This project analyzes the **Brazilian E-Commerce Public Dataset by Olist** using SQL to understand sales performance, customer behavior, product performance, and overall business trends.
+**Stack:** PostgreSQL · SQL (CTEs, window functions, views) · Excel/CSV exports · Git
 
-The dataset contains approximately **100,000 orders** from an online marketplace in Brazil and is distributed across multiple related tables. The project focuses on transforming raw transactional data into meaningful business insights using SQL.
+![Dashboard](docs/dashboard.png)
 
-The analysis is designed from the perspective of a **Data Analyst supporting an e-commerce business**.
+## Key findings
 
----
+| Area | Finding |
+|---|---|
+| Growth | Growth was volume-led (AOV stayed R$125-149; 1.14 items per order). Revenue plateaued at R$0.83-0.98M/month after Jan 2018. |
+| Black Friday | 24 Nov 2017 produced 1,147 orders, about 4.7x a normal November day. 2018 settled at a higher baseline. |
+| Geography | SP, RJ and MG generate **63.4%** of revenue. SP alone is 38.4%. |
+| Products | 18 of 74 categories produce 80% of revenue. No category exceeds 9.3% and no product exceeds 0.5%. |
+| Customers | **97.0% buy only once.** The true repeat rate is about 2.1% after removing same-day second orders. Cohort retention is below 1% at months 1, 3 and 6. |
+| Customer value | The top 10% of customers hold 41.1% of revenue. Value comes from basket size, not loyalty. |
+| Operations | 6.8% of orders arrive late. Average review score falls from **4.29 (on time) to 3.29 (1-3 days late)** and about 1.7 (8+ days late). |
+| Stress periods | Late rate peaked at 12.4% (Nov 2017), 14.1% (Feb 2018) and 19.0% (Mar 2018), against about 3-4% in normal months. |
+| Hotspots | Rio de Janeiro has a 12.1% late rate (SP: 4.5%) and a 3.97 score (SP: 4.25). |
 
-## 🎯 Business Objective
+**Recommendations**
+- Trigger a post-purchase campaign within 30 days for first-time, high-basket buyers (median time to a second order is 29 days).
+- Send proactive delay notices and recovery offers to orders running 1-7 days late, before review scores fall to their floor.
+- Set late-rate targets for RJ and the Northeast, and add peak-season capacity planning.
+- Audit office_furniture (3.65 score, 20.5-day delivery, 25% freight burden) and bed_bath_table sellers separately from logistics.
 
-The primary objective of this project is to answer key business questions related to:
+Full write-ups: [Sales](insights/sales_and_revenue.md) · [Products](insights/product_and_category.md) · [Customers](insights/customer_insight.md) · [Operations](insights/operation_insight.md)
 
-* Sales and revenue performance
-* Order volume and purchasing trends
-* Customer spending and repeat purchases
-* Product and category performance
-* Monthly revenue growth
-* Payment behavior
-* Geographic distribution of customers
+## Business questions answered
 
-The final goal is to translate SQL analysis into **clear business insights and actionable recommendations**.
+- **Sales:** revenue, orders and AOV; monthly trend with MoM and YoY growth; revenue by state; day-of-week pattern; peak days.
+- **Products:** category Pareto (80/20); product long tail; satisfaction scorecard by category; high-volume, below-average-rated categories.
+- **Customers:** repeat rate and lifetime value; value deciles; RFM segmentation; cohort retention; time to second purchase.
+- **Operations:** delivery time vs promise; late rate by month, state and category; review score vs days late; payment mix; installments vs order value.
 
----
+## Data quality & assumptions
 
-## 📊 Dataset
+Raw data is never modified. All cleaning rules live in views in `sql/04_clean_view.sql`.
 
-**Dataset:** Brazilian E-Commerce Public Dataset by Olist
-**Source:** Kaggle
-**Period:** 2016–2018
-**Records:** Approximately 100,000 orders
+- Revenue = sum of item price (excluding freight) on orders with status `delivered`. Currency is Brazilian Reais (BRL).
+- Trend analysis covers Jan 2017 to Aug 2018. Sep 2016 to Dec 2016 and Sep to Oct 2018 are near-empty or partial.
+- `customer_unique_id` identifies people: 99,441 order-level `customer_id`s map to 96,096 real customers.
+- 8 delivered orders lack a delivery date. They are kept in revenue and excluded from delivery metrics.
+- "Late" means delivered on a later **calendar date** than the estimate. Estimates are midnight timestamps, so comparing full timestamps overstated lateness (7,822 vs 6,531 orders).
+- 1,359 orders have carrier pickup before approval. They are flagged, and approval timestamps are not used.
+- 547 orders have multiple reviews; the latest review per order is used. 768 orders have no review, so review joins are LEFT JOINs.
+- Items and payments are aggregated to one row per order **before** joining, to prevent fan-out (row multiplication). The category view reconciles to the headline revenue exactly (R$13,181,027.13).
+- 3 `not_defined` and 6 zero-value voucher payments are excluded from payment analysis. Payment value is approximately item revenue plus freight (reconciles within 0.02%).
+- 610 products lack a category and are labeled `unknown` (1.3% of revenue).
+- RFM recency is measured from the last order in the data, not today's date. Frequency scoring is rule-based (1, 2, 3+ orders) because 97% of customers bought once.
 
-The dataset contains multiple interconnected tables covering customers, orders, products, sellers, payments, reviews, and other e-commerce information.
+## Limitations
 
-### Main Tables
+- Cohort retention percentages rest on small counts (for example, 0.42% of 718 customers is about 3 people), so cohorts are not ranked against each other.
+- Aug 2018 may be slightly understated because recent orders were not yet delivered at extraction.
+- Delivery-vs-satisfaction and installment-vs-basket results are associations, not proven causes.
+- Remote-state results (AM, AP, AC, RR, RO) rest on small samples.
 
-| Table                               | Description                                        |
-| ----------------------------------- | -------------------------------------------------- |
-| `olist_customers_dataset`           | Customer information and location                  |
-| `olist_orders_dataset`              | Order details, status, and timestamps              |
-| `olist_order_items_dataset`         | Products purchased in each order                   |
-| `olist_products_dataset`            | Product information and categories                 |
-| `olist_order_payments_dataset`      | Payment methods and payment values                 |
-| `olist_order_reviews_dataset`       | Customer reviews and ratings                       |
-| `olist_sellers_dataset`             | Seller information and location                    |
-| `olist_geolocation_dataset`         | Brazilian ZIP-code geographic data                 |
-| `product_category_name_translation` | Portuguese-to-English product category translation |
+## Schema
 
----
+```mermaid
+erDiagram
+    customers ||--o{ orders : places
+    orders ||--|{ order_items : contains
+    orders ||--o{ order_payments : paid_by
+    orders ||--o{ order_reviews : reviewed_in
+    products ||--o{ order_items : sold_as
+    sellers ||--o{ order_items : fulfils
+    product_category_translation ||--o{ products : translates
+```
 
-## 🛠️ Tools & Technologies
-
-* **SQL**
-* **PostgreSQL / MySQL**
-* **Git**
-* **GitHub**
-* **Excel / CSV** for initial data inspection
-
----
-
-## 🧠 SQL Concepts Used
-
-The project will demonstrate practical application of:
-
-* SELECT & filtering
-* WHERE and HAVING
-* GROUP BY & aggregations
-* INNER JOIN / LEFT JOIN
-* Subqueries
-* Common Table Expressions (CTEs)
-* CASE statements
-* Date and time functions
-* Window functions
-* `ROW_NUMBER()`
-* `RANK()`
-* `LAG()`
-* Customer and product ranking
-* Month-over-month growth analysis
-
----
-
-## 🔍 Business Questions
-
-### Sales Analysis
-
-1. What is the total revenue generated?
-2. How many orders were placed?
-3. What is the average order value?
-4. How does revenue change month over month?
-5. Which months generated the highest revenue?
-6. How does order volume change over time?
-
-### Customer Analysis
-
-1. How many unique customers are there?
-2. Who are the highest-spending customers?
-3. Which customers have placed multiple orders?
-4. What is the average spending per customer?
-5. Which states have the highest number of customers?
-6. What proportion of revenue comes from repeat customers?
-
-### Product Analysis
-
-1. Which products generate the highest revenue?
-2. Which product categories perform best?
-3. Which categories have the highest order volume?
-4. What are the top products within each category?
-5. How does product price relate to sales performance?
-
-### Payment Analysis
-
-1. Which payment methods are most commonly used?
-2. What is the total payment value by payment method?
-3. What is the average payment value for each payment type?
-4. How does payment behavior vary across customers?
-
----
-
-## 📈 Key Metrics
-
-The analysis will calculate metrics such as:
-
-* Total Revenue
-* Total Orders
-* Unique Customers
-* Average Order Value (AOV)
-* Revenue by Month
-* Month-over-Month Revenue Growth
-* Customer Lifetime Spending
-* Repeat Customer Rate
-* Revenue by Product Category
-* Top Products by Revenue
-* Revenue by Payment Method
-
----
-
-## 🗂️ Project Structure
+## Repository structure
 
 ```text
-ecommerce-sales-customer-analysis/
-│
-├── data/
-│   └── raw/
-│       ├── olist_customers_dataset.csv
-│       ├── olist_geolocation_dataset.csv
-│       ├── olist_order_items_dataset.csv
-│       ├── olist_order_payments_dataset.csv
-│       ├── olist_order_reviews_dataset.csv
-│       ├── olist_orders_dataset.csv
-│       ├── olist_products_dataset.csv
-│       ├── olist_sellers_dataset.csv
-│       └── product_category_name_translation.csv
-│
 ├── sql/
-│   ├── 01_schema.sql
-│   ├── 02_data_cleaning.sql
-│   ├── 03_sales_analysis.sql
-│   ├── 04_customer_analysis.sql
-│   ├── 05_product_analysis.sql
-│   └── 06_advanced_analysis.sql
-│
-├── insights/
-│   └── business_insights.md
-│
-└── README.md
+│   ├── 01_sql_schema.sql          # tables, keys, indexes
+│   ├── 02_load_data.sql           # \copy loads (run with psql)
+│   ├── 03_quality_check.sql       # profiling: NULLs, orphans, duplicates, date logic
+│   ├── 04_clean_view.sql          # cleaned views used by every analysis
+│   ├── 05_sales_analysis.sql      # KPIs, MoM/YoY, state Pareto, peak days
+│   ├── 06_product_analysis.sql    # category/product Pareto, satisfaction scorecard
+│   ├── 07_customer_analysis.sql   # repeat rate, deciles, RFM, cohorts
+│   ├── 08_operation_analysis.sql  # delivery, lateness vs reviews, payments
+│   ├── 09_export_views.sql        # x_ views feeding the exports
+│   └── 10_export_csv.sql          # writes outputs/*.csv
+├── outputs/                       # exported result tables (CSV)
+├── insights/                      # written findings and recommendations
+├── docs/dashboard.png
+└── data_inspection.ipynb          # initial pandas inspection of the raw files
 ```
 
----
+## How to reproduce
 
-## 🔄 Project Workflow
+1. Download the dataset from [Kaggle](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce) and place the CSVs in a `data/` folder at the repo root (it is git-ignored). The geolocation file is not used.
+2. Create a database and run the scripts **from the repo root** so the relative paths resolve:
 
-```text
-Raw Dataset
-     ↓
-Data Understanding
-     ↓
-Data Cleaning & Validation
-     ↓
-Database Schema Design
-     ↓
-Load Data into SQL Database
-     ↓
-Exploratory SQL Analysis
-     ↓
-Advanced SQL Analysis
-     ↓
-Business Insights
-     ↓
-Recommendations
+```bash
+psql -U postgres -d postgres -f sql/01_sql_schema.sql
+psql -U postgres -d postgres -f sql/02_load_data.sql
+psql -U postgres -d postgres -f sql/03_quality_check.sql
+psql -U postgres -d postgres -f sql/04_clean_view.sql
+# then 05 to 09 in order; 10 exports the CSVs
 ```
 
----
+Everything is created in the `ecommerce` schema. The scripts were developed and run against PostgreSQL in the default `postgres` database.
 
-## 💡 Expected Outcome
+## SQL techniques demonstrated
 
-The project aims to demonstrate how SQL can be used to transform raw e-commerce transaction data into meaningful business information.
+| Technique | Where |
+|---|---|
+| Views as a single cleaning layer | 04 |
+| CTEs, `FILTER`, conditional aggregation | 03, 05-08 |
+| Window functions: `LAG`, `ROW_NUMBER`, `NTILE`, running totals, `ROWS` frames | 05, 06, 07 |
+| Pareto / cumulative share analysis | 05, 06 |
+| Percentiles (`PERCENTILE_CONT`) | 06, 07, 08 |
+| RFM segmentation and cohort retention (with censoring handled) | 07 |
+| Fan-out prevention and reconciliation checks | 04, 06, 07 |
 
-The final analysis will identify:
+## Dataset
 
-* Major sales trends
-* High-value customers
-* High-performing products and categories
-* Customer purchasing patterns
-* Revenue growth patterns
-* Payment preferences
-* Potential areas for business improvement
+[Brazilian E-Commerce Public Dataset by Olist](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce) (Kaggle): about 100k orders, 2016-2018, 9 relational tables.
 
-Actual findings and recommendations will be added after completing the analysis.
+## Author
 
----
-
-## 📚 Dataset Source
-
-**Brazilian E-Commerce Public Dataset by Olist**
-
-Dataset available on Kaggle:
-https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce
-
----
-
-## 👨‍💻 Author
-
-**Shivam Kumar**
-
-Aspiring Data Analyst | SQL | Python | Excel | Data Analysis
-
-GitHub: https://github.com/Shivam-codes247
-
-
-## Data Quality & Assumptions
-- Revenue = sum of item price (excl. freight) on orders with status `delivered`.
-- Trend analysis covers Jan 2017 – Aug 2018 (first/last months are partial).
-- `customer_unique_id` is used for customer counts (99,441 order-level IDs → 96,096 real customers).
-- 8 delivered orders lack a delivery date: kept in revenue, excluded from delivery metrics.
-- "Late" means delivered on a later calendar date than the estimate. Estimates are midnight timestamps; comparing full timestamps overstated lateness (7,822 vs. 6,531 orders).
-- Payment value is approximately item revenue + freight (reconciles within 0.02%); orders paid with several payment types are counted under each type.
-- Database used: `postgres` (the database shown by the psql prompt).
-- 1,359 orders have carrier pickup before approval: flagged, approval timestamps not used.
-- 547 orders have multiple reviews: the latest review per order is used.
-- 3 `not_defined` and 6 zero-value voucher payments excluded from payment analysis.
-- 610 products lack a category: labeled `unknown`.
+**Shivam Kumar**: aspiring Data Analyst · SQL · Excel · Python
+GitHub: [Shivam-codes247](https://github.com/Shivam-codes247)

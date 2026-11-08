@@ -1,4 +1,4 @@
-## Operations & Payment Insights (Jan 2017 – Aug 2018, delivered orders)
+# Operations & Payment Insights (Jan 2017 – Aug 2018, delivered orders)
 1. Median delivery takes 10 days (p90: 23) against an average promise of 24.3 days;
    6.8% of orders arrive after the promised date (6,531 orders).
 2. Lateness is strongly associated with lower satisfaction: avg review score falls from
@@ -8,9 +8,10 @@
 3. Late rates spiked in peak/stress months: 12.4% (Nov 2017), 14.1% (Feb 2018),
    19.0% (Mar 2018), versus ~3–4% in normal months. Performance recovered from Apr 2018.
 4. Rio de Janeiro (13.3% of revenue) has a 12.1% late rate vs 4.5% in São Paulo and a
-   3.97 average score vs 4.25. The Northeast shows 12–22% late rates.
-5. Category satisfaction is not explained by lateness (bed_bath_table: average delivery
-   performance, 4.00 score). office_furniture is slow (20.5 days) rather than late.
+   3.97 average score vs 4.25. Several Northeast states have 12–22% late rates (BA, CE, PI, SE, MA, AL).
+5. Category satisfaction is not explained by lateness: bed_bath_table has an average 7.4% late
+   rate but a 4.00 score, and late rates across 43 categories (3.6–11.8%) show no clear link to
+   scores. office_furniture is slow (20.5 days) rather than late (8.1%).
 6. Remote northern states (AM, AP, AC, RO) take 19–27 days but have <4% late and 4.1–4.2
    scores: honest delivery promises matter more than speed (small samples).
 7. Credit cards carry 78.5% of paid value, boleto 18.0%. Average card payment rises from
