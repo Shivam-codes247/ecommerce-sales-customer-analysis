@@ -228,3 +228,17 @@ https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce
 Aspiring Data Analyst | SQL | Python | Excel | Data Analysis
 
 GitHub: https://github.com/Shivam-codes247
+
+
+## Data Quality & Assumptions
+- Revenue = sum of item price (excl. freight) on orders with status `delivered`.
+- Trend analysis covers Jan 2017 – Aug 2018 (first/last months are partial).
+- `customer_unique_id` is used for customer counts (99,441 order-level IDs → 96,096 real customers).
+- 8 delivered orders lack a delivery date: kept in revenue, excluded from delivery metrics.
+- "Late" means delivered on a later calendar date than the estimate. Estimates are midnight timestamps; comparing full timestamps overstated lateness (7,822 vs. 6,531 orders).
+- Payment value is approximately item revenue + freight (reconciles within 0.02%); orders paid with several payment types are counted under each type.
+- Database used: `postgres` (the database shown by the psql prompt).
+- 1,359 orders have carrier pickup before approval: flagged, approval timestamps not used.
+- 547 orders have multiple reviews: the latest review per order is used.
+- 3 `not_defined` and 6 zero-value voucher payments excluded from payment analysis.
+- 610 products lack a category: labeled `unknown`.
